@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cozy-kit Plugin Metadata",
+  "description": "Schema for cozy_kit_plugins metadata.json files. Add '$schema' pointing here for IDE autocomplete.",
+  "type": "object",
+  "required": ["name", "version", "description", "author", "methods"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URI of this schema — enables IDE autocomplete."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_\\-]+$",
+      "description": "Unique plugin identifier (alphanumeric, underscores, hyphens)."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Plugin version following PEP 440, e.g. '1.0.0'."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short human-readable summary of what this plugin does."
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Plugin author name or email address."
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier, e.g. 'MIT', 'Apache-2.0', 'GPL-3.0-only'."
+    },
+    "target": {
+      "type": "string",
+      "description": "cozy_kit class this plugin patches (e.g. 'Greeting'). Omit for standalone plugins."
+    },
+    "methods": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Names of functions (or methods) the engine file must define."
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Plugin name with optional PEP 440 specifier, e.g. 'base_plugin>=1.0,<2.0'."
+      },
+      "default": [],
+      "description": "Other cozy-kit plugins this plugin depends on."
+    },
+    "min_cozy_kit_version": {
+      "type": "string",
+      "description": "Minimum cozy_kit package version required at runtime, e.g. '1.0.6'."
+    },
+    "python_requires": {
+      "type": "string",
+      "description": "PEP 440 Python version specifier, e.g. '>=3.10'."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": [],
+      "description": "Keywords for discovery and filtering, e.g. ['text', 'formatter']."
+    },
+    "conflict_with": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": [],
+      "description": "Plugin names that cannot be enabled at the same time as this plugin."
+    }
+  }
+}

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyi
+*.egg-info/
+.idea/
+.DS_Store
+dist/
+build/
+.claude
+CLAUDE.md
+marketplace/
