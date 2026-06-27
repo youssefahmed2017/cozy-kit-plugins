@@ -1,5 +1,7 @@
 import importlib
 import logging
+import os
+import stat
 import sys as _sys
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set
@@ -49,6 +51,49 @@ _standalone_plugins: Dict[str, Dict[str, Callable]] = {}
 _enabled_plugins: Set[str] = set()
 _method_ownership: Dict[str, Dict[str, str]] = {}
 _cli_registry: Dict[str, Dict[str, str]] = {}  # {cli_name: {file, func, plugin}}
+
+
+def _scripts_dir() -> Path:
+    """Return the Python env's Scripts/bin directory (same place cozy-plugins lives)."""
+    return Path(_sys.executable).parent
+
+
+def _write_cli_script(cli_name: str, cli_file: str, func: str) -> None:
+    """Write a platform-appropriate wrapper script for *cli_name*."""
+    scripts = _scripts_dir()
+    wrapper = (
+        "import importlib.util, sys\n"
+        f"spec = importlib.util.spec_from_file_location('_cozy_cli_{cli_name}', {cli_file!r})\n"
+        "m = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(m)\n"
+        f"sys.exit(getattr(m, {func!r})() or 0)\n"
+    )
+    if _sys.platform == "win32":
+        script_py = scripts / f"{cli_name}-script.py"
+        script_py.write_text(wrapper, encoding="utf-8")
+        cmd = scripts / f"{cli_name}.cmd"
+        cmd.write_text(
+            f'@"%~dp0python.exe" "%~dp0{cli_name}-script.py" %*\r\n',
+            encoding="utf-8",
+        )
+    else:
+        script = scripts / cli_name
+        script.write_text(f"#!/usr/bin/env python\n{wrapper}", encoding="utf-8")
+        script.chmod(script.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+
+
+def _remove_cli_script(cli_name: str) -> None:
+    """Delete the wrapper script(s) for *cli_name* if they exist."""
+    scripts = _scripts_dir()
+    if _sys.platform == "win32":
+        for name in (f"{cli_name}-script.py", f"{cli_name}.cmd"):
+            p = scripts / name
+            if p.exists():
+                p.unlink()
+    else:
+        p = scripts / cli_name
+        if p.exists():
+            p.unlink()
 
 
 def register_target(name: str, cls: type) -> None:
@@ -188,6 +233,7 @@ def _rollback_plugin(plugin_name: str) -> None:
                 ownership.pop(method_name, None)
     _standalone_plugins.pop(plugin_name, None)
     for cli_name in [k for k, v in _cli_registry.items() if v["plugin"] == plugin_name]:
+        _remove_cli_script(cli_name)
         del _cli_registry[cli_name]
     _enabled_plugins.discard(plugin_name)
 
@@ -325,6 +371,7 @@ def add_plugin(name: str) -> None:
             for cli_name, spec in plugin_data.get("clis", {}).items():
                 abs_file, func = spec.rsplit(":", 1)
                 _cli_registry[cli_name] = {"file": abs_file, "func": func, "plugin": plugin_name}
+                _write_cli_script(cli_name, abs_file, func)
                 _log.debug("Registered CLI '%s' ← plugin '%s'.", cli_name, plugin_name)
 
             call_hook(module, "on_enable", ctx, plugin_name)
@@ -369,6 +416,7 @@ def disable_plugin(name: str) -> None:
 
     _standalone_plugins.pop(name, None)
     for cli_name in [k for k, v in _cli_registry.items() if v["plugin"] == name]:
+        _remove_cli_script(cli_name)
         del _cli_registry[cli_name]
     _enabled_plugins.discard(name)
     set_autoload(name, False)
