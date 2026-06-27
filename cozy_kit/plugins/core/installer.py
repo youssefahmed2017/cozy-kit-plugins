@@ -502,12 +502,16 @@ def upgrade_plugin(name: str, metadata: str, engine: str):
         )
 
     was_enabled = name in _enabled_plugins
+    was_in_autoload = name in get_autoload_list()
+
     if was_enabled:
         disable_plugin(name)
 
     manifest = _plugin(metadata=metadata, engine=engine, overwrite=True)
 
-    if was_enabled:
+    # Re-enable if active in this process OR on the autoload list (covers fresh
+    # CLI processes where _enabled_plugins is empty but the plugin should be active).
+    if was_enabled or was_in_autoload:
         add_plugin(name)
 
     _log.info("Upgraded plugin '%s' to v%s.", name, manifest.version)
