@@ -110,7 +110,7 @@ def _cmd_info(args) -> int:
 
 def _cmd_install(args) -> int:
     from cozy_kit.plugins.core.publisher import plugin
-    from cozy_kit.plugins.core.registry import set_autoload
+    from cozy_kit.plugins.core.installer import add_plugin
     from cozy_kit._internal.errors.inheritance_errors import (
         CozyKitPluginSystemError as PluginSystemError,
     )
@@ -126,11 +126,14 @@ def _cmd_install(args) -> int:
         return 1
 
     if not args.no_autoload:
-        set_autoload(manifest.name, True)
+        try:
+            add_plugin(manifest.name)  # fires on_enable, writes CLI scripts, sets autoload
+        except PluginSystemError as exc:
+            console.print(f"[yellow]Warning:[/yellow] registered but could not enable: {exc}")
         console.print(
             f"[green]✓[/green] Installed [cyan bold]{manifest.name}[/cyan bold] "
             f"[bright_white]v{manifest.version}[/bright_white] "
-            f"[dim](marked for autoload)[/dim]"
+            f"[dim](enabled)[/dim]"
         )
     else:
         console.print(
@@ -142,12 +145,18 @@ def _cmd_install(args) -> int:
 
 
 def _cmd_remove(args) -> int:
-    from cozy_kit.plugins.core.registry import unregister_plugin
+    from cozy_kit.plugins.core.installer import remove_plugin
     from cozy_kit._internal.errors.plugin_errors import PluginNotFoundError
+    from cozy_kit._internal.errors.inheritance_errors import (
+        CozyKitPluginSystemError as PluginSystemError,
+    )
 
     try:
-        unregister_plugin(args.name)
+        remove_plugin(args.name)  # fires on_disable → on_uninstall, removes CLI scripts
     except PluginNotFoundError as exc:
+        console.print(f"[red bold]Error:[/red bold] {exc}")
+        return 1
+    except PluginSystemError as exc:
         console.print(f"[red bold]Error:[/red bold] {exc}")
         return 1
 
@@ -158,7 +167,11 @@ def _cmd_remove(args) -> int:
 
 
 def _cmd_enable(args) -> int:
-    from cozy_kit.plugins.core.registry import get_registry, set_autoload
+    from cozy_kit.plugins.core.registry import get_registry
+    from cozy_kit.plugins.core.installer import add_plugin
+    from cozy_kit._internal.errors.inheritance_errors import (
+        CozyKitPluginSystemError as PluginSystemError,
+    )
 
     if args.name not in get_registry():
         console.print(
@@ -166,19 +179,39 @@ def _cmd_enable(args) -> int:
         )
         return 1
 
-    set_autoload(args.name, True)
+    try:
+        add_plugin(args.name)  # fires on_enable, writes CLI scripts, sets autoload
+    except PluginSystemError as exc:
+        console.print(f"[red bold]Error:[/red bold] {exc}")
+        return 1
+
     console.print(
-        f"[green]✓[/green] Plugin [cyan bold]{args.name}[/cyan bold] will be autoloaded on next startup."
+        f"[green]✓[/green] Plugin [cyan bold]{args.name}[/cyan bold] enabled."
     )
     return 0
 
 
 def _cmd_disable(args) -> int:
-    from cozy_kit.plugins.core.registry import set_autoload
+    from cozy_kit.plugins.core.registry import get_registry
+    from cozy_kit.plugins.core.installer import disable_plugin
+    from cozy_kit._internal.errors.inheritance_errors import (
+        CozyKitPluginSystemError as PluginSystemError,
+    )
 
-    set_autoload(args.name, False)
+    if args.name not in get_registry():
+        console.print(
+            f"[red bold]Error:[/red bold] Plugin [cyan bold]{args.name}[/cyan bold] is not registered."
+        )
+        return 1
+
+    try:
+        disable_plugin(args.name)  # fires on_disable, removes CLI scripts, removes from autoload
+    except PluginSystemError as exc:
+        console.print(f"[red bold]Error:[/red bold] {exc}")
+        return 1
+
     console.print(
-        f"[yellow]–[/yellow] Plugin [cyan bold]{args.name}[/cyan bold] removed from autoload list."
+        f"[yellow]–[/yellow] Plugin [cyan bold]{args.name}[/cyan bold] disabled."
     )
     return 0
 
@@ -357,13 +390,18 @@ def _cmd_marketplace_list(args) -> int:
     table.add_column("Installed", style="green", no_wrap=True)
 
     for entry in index:
-        installed_version = registry.get(entry["plugin_name"], {}).get("version", "")
+        local = registry.get(entry["plugin_name"], {})
+        installed_version = local.get("version", "")
         installed_cell = f"v{installed_version}" if installed_version else ""
-        name_cell = (
-            f"[green]✓[/green] [cyan bold]{entry['name']}[/cyan bold]"
-            if entry.get("verified")
-            else f"[cyan]{entry['name']}[/cyan]"
-        )
+
+        badges = ""
+        if local.get("official"):
+            badges += "[gold1]★[/gold1] "
+        if local.get("builtin"):
+            badges += "[bright_blue]⬡[/bright_blue] "
+        verified_mark = "[green]✓[/green] " if entry.get("verified") else ""
+        name_cell = f"{badges}{verified_mark}[cyan bold]{entry['name']}[/cyan bold]"
+
         tags_cell = ", ".join(entry.get("tags", []))
         table.add_row(
             name_cell,
@@ -376,7 +414,8 @@ def _cmd_marketplace_list(args) -> int:
 
     console.print(table)
     console.print(
-        f"\n[dim][green]✓[/green] = verified by the cozy-kit marketplace  "
+        f"\n[dim][gold1]★[/gold1] = official  "
+        f"[green]✓[/green] = verified by the cozy-kit marketplace  "
         f"· [cyan]cozy-plugins marketplace info <name>[/cyan] · details"
         f"[/dim]"
     )
@@ -789,6 +828,14 @@ def build_parser(prog: str = "cozy-plugins") -> argparse.ArgumentParser:
         help="Upgrade every installed plugin that has a newer version available.",
     )
     mp.set_defaults(func=_cmd_marketplace_upgrade)
+
+    mp = market_sub.add_parser("enable", help="Enable a marketplace plugin.")
+    mp.add_argument("name", help="Plugin name.")
+    mp.set_defaults(func=_cmd_enable)
+
+    mp = market_sub.add_parser("disable", help="Disable a marketplace plugin.")
+    mp.add_argument("name", help="Plugin name.")
+    mp.set_defaults(func=_cmd_disable)
 
     mp = market_sub.add_parser(
         "install",

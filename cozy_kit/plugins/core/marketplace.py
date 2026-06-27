@@ -569,6 +569,7 @@ def install_from_marketplace(
     manifest = plugin(metadata=metadata_path, engine=engine_path, overwrite=overwrite)
 
     if autoload:
-        set_autoload(manifest.name, True)
+        from cozy_kit.plugins.core.installer import add_plugin
+        add_plugin(manifest.name)  # fires on_enable, writes CLI scripts, sets autoload
 
     return manifest

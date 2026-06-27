@@ -55,7 +55,8 @@ _cli_registry: Dict[str, Dict[str, str]] = {}  # {cli_name: {file, func, plugin}
 
 def _scripts_dir() -> Path:
     """Return the Python env's Scripts/bin directory (same place cozy-plugins lives)."""
-    return Path(_sys.executable).parent
+    import sysconfig
+    return Path(sysconfig.get_path("scripts"))
 
 
 def _write_cli_script(cli_name: str, cli_file: str, func: str) -> None:
@@ -394,9 +395,15 @@ def disable_plugin(name: str) -> None:
     """
     Remove a plugin's methods from its target class and call on_disable.
     The plugin stays registered; call remove_plugin() to fully uninstall.
-    No-op if the plugin is not currently enabled.
+
+    Works correctly in fresh processes: if the plugin is on the autoload list
+    but not yet loaded into memory, on_disable is still fired and CLI scripts
+    are removed from disk.
     """
-    if name not in _enabled_plugins:
+    in_memory = name in _enabled_plugins
+    in_autoload = name in get_autoload_list()
+
+    if not in_memory and not in_autoload:
         return
 
     plugin_data = fetch_plugin(name)
@@ -409,20 +416,25 @@ def disable_plugin(name: str) -> None:
 
     call_hook(module, "on_disable", ctx, name)
 
-    if target_name:
-        target_cls = _resolve_target(target_name)
-        ownership = _method_ownership.get(target_name, {})
-        for method_name in methods:
-            if ownership.get(method_name) == name:
-                if hasattr(target_cls, method_name):
-                    delattr(target_cls, method_name)
-                ownership.pop(method_name, None)
+    if in_memory:
+        if target_name:
+            target_cls = _resolve_target(target_name)
+            ownership = _method_ownership.get(target_name, {})
+            for method_name in methods:
+                if ownership.get(method_name) == name:
+                    if hasattr(target_cls, method_name):
+                        delattr(target_cls, method_name)
+                    ownership.pop(method_name, None)
+        _standalone_plugins.pop(name, None)
+        for cli_name in [k for k, v in _cli_registry.items() if v["plugin"] == name]:
+            _remove_cli_script(cli_name)
+            del _cli_registry[cli_name]
+        _enabled_plugins.discard(name)
+    else:
+        # Plugin not loaded in this process — remove CLI scripts directly from disk.
+        for cli_name in plugin_data.get("clis", {}):
+            _remove_cli_script(cli_name)
 
-    _standalone_plugins.pop(name, None)
-    for cli_name in [k for k, v in _cli_registry.items() if v["plugin"] == name]:
-        _remove_cli_script(cli_name)
-        del _cli_registry[cli_name]
-    _enabled_plugins.discard(name)
     set_autoload(name, False)
     _log.info("Disabled plugin '%s'.", name)
 
@@ -435,7 +447,8 @@ def remove_plugin(name: str) -> None:
     module = load_module_from_path(engine_path, f"_cozy_plugin_{name}")
     ctx = _make_context(plugin_data)
 
-    if name in _enabled_plugins:
+    # disable_plugin handles both in-memory and autoload-only cases.
+    if name in _enabled_plugins or name in get_autoload_list():
         disable_plugin(name)
 
     call_hook(module, "on_uninstall", ctx, name)
