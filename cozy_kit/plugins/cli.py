@@ -629,6 +629,14 @@ def _cmd_marketplace_install(args) -> int:
         console.print(f"[red bold]Error:[/red bold] {exc}")
         return 1
 
+    if manifest is None:
+        console.print(
+            f"[green]✓[/green] [cyan bold]{short}[/cyan bold] package updated on disk. "
+            f"Run [cyan]cozy-plugins marketplace upgrade {short}[/cyan] "
+            f"to also update the cozy-kit registration."
+        )
+        return 0
+
     suffix = "" if args.no_autoload else " [dim](marked for autoload)[/dim]"
     console.print(
         f"[green]✓[/green] Installed [cyan bold]{manifest.name}[/cyan bold] "

@@ -543,20 +543,29 @@ def install_from_marketplace(
     Install a cozy-kit plugin from PyPI by its short name.
 
     'fancy-greetings' and 'cozy-kit-plugin-fancy-greetings' are both accepted.
-    Raises MarketplaceError, PluginAlreadyExistsError, or any PluginSystemError
-    subclass from the registration step.
+
+    Always runs pip install (adds/updates the package on disk).
+    Registration only happens when the plugin is not already in the registry.
+    If it is already registered, the PyPI package is still updated on disk and
+    the caller receives None — run `upgrade_from_marketplace` to also update
+    the cozy-kit registration.
     """
     from cozy_kit.plugins.core.publisher import plugin
-    from cozy_kit.plugins.core.registry import set_autoload
+    from cozy_kit.plugins.core.registry import get_registry, set_autoload
 
     short_name = name[len(_PREFIX) :] if name.startswith(_PREFIX) else name
     package = f"{_PREFIX}{short_name}"
     module_name = package.replace("-", "_")
+    plugin_name = short_name.replace("-", "_")
 
     _pypi_json_info(package)  # existence check — raises MarketplaceError on 404
     _pip_install(package)
-    metadata_path, engine_path = _get_plugin_paths(module_name)
 
+    if plugin_name in get_registry() and not overwrite:
+        # Package files updated on disk; registration untouched.
+        return None
+
+    metadata_path, engine_path = _get_plugin_paths(module_name)
     manifest = plugin(metadata=metadata_path, engine=engine_path, overwrite=overwrite)
 
     if autoload:
