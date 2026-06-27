@@ -150,6 +150,18 @@ def validate_plugin(metadata: str, engine: str) -> ValidationResult:
             if not func_part.strip():
                 errors.append(f"CLI spec for '{cli_name}' is missing a function name: {spec!r}")
 
+    if meta_data.get("official") is not None:
+        if not isinstance(meta_data["official"], bool):
+            errors.append("'official' must be a boolean.")
+        elif meta_data["official"]:
+            from cozy_kit._internal._trusted import resolve_author
+            _, is_trusted = resolve_author(meta_data.get("author", ""))
+            if not is_trusted:
+                warnings.append(
+                    "'official: true' is set but the author is not a trusted maintainer — "
+                    "this field will be ignored at registration time."
+                )
+
     if "license" not in meta_data:
         warnings.append(
             "No 'license' field. Consider adding one (e.g. 'MIT', 'Apache-2.0')."

@@ -18,3 +18,4 @@ class PluginManifest:
     tags: List[str] = field(default_factory=list)
     conflict_with: List[str] = field(default_factory=list)
     clis: Dict[str, str] = field(default_factory=dict)
+    official: bool = False

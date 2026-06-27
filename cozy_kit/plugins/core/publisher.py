@@ -22,6 +22,7 @@ from cozy_kit.plugins.core.registry import (
 from cozy_kit._internal.helpers.import_helpers import load_module_from_path
 from cozy_kit._internal.helpers.plugin_lifecycle import call_hook
 from cozy_kit._internal.helpers.dep_helpers import validate_dep_spec
+from cozy_kit._internal._trusted import resolve_author
 
 _log = logging.getLogger("cozy_kit.plugins.publisher")
 
@@ -65,6 +66,10 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
 
     if not isinstance(meta_data["name"], str) or not meta_data["name"].strip():
         raise InvalidMetadataError("'name' must be a non-empty string.")
+
+    raw_author = meta_data.get("author", "")
+    display_author, is_trusted = resolve_author(raw_author)
+    official = bool(meta_data.get("official", False)) and is_trusted
 
     deps = meta_data.get("dependencies", [])
     if not isinstance(deps, list):
@@ -165,7 +170,7 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
         name=name,
         version=meta_data["version"],
         description=meta_data["description"],
-        author=meta_data["author"],
+        author=display_author,
         methods=meta_data["methods"],
         target=meta_data.get("target"),
         dependencies=deps,
@@ -175,6 +180,7 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
         tags=tags,
         conflict_with=conflict_with,
         clis=resolved_clis,
+        official=official,
     )
 
     register_plugin(manifest, str(engine_path))

@@ -170,6 +170,7 @@ def register_plugin(manifest: PluginManifest, engine_src: str):
             "tags": manifest.tags,
             "conflict_with": manifest.conflict_with,
             "clis": clis_stored,
+            "official": manifest.official,
             "installed_at": existing_installed_at or now,
             "updated_at": now,
         }

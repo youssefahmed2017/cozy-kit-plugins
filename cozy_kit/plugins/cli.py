@@ -64,7 +64,12 @@ def _cmd_list(args) -> int:
         tag_str = ", ".join(info.get("tags", []))
         marker = "[green]yes[/green]" if name in autoload else ""
         cli_names = ", ".join(sorted((info.get("clis") or {}).keys()))
-        table.add_row(name, info.get("version", ""), target, tag_str, marker, cli_names)
+        name_cell = (
+            f"[gold1]★[/gold1] [cyan bold]{name}[/cyan bold]"
+            if info.get("official")
+            else f"[cyan bold]{name}[/cyan bold]"
+        )
+        table.add_row(name_cell, info.get("version", ""), target, tag_str, marker, cli_names)
 
     console.print(table)
     return 0
@@ -82,10 +87,11 @@ def _cmd_info(args) -> int:
         console.print(f"[red bold]Error:[/red bold] {exc}", file=sys.stderr)
         return 1
 
+    official_badge = " [gold1]★ OFFICIAL[/gold1]" if data.get("official") else ""
     console.print(
         Panel(
             JSON(json.dumps(data, indent=2)),
-            title=f"[cyan bold]{args.name}[/cyan bold]",
+            title=f"[cyan bold]{args.name}[/cyan bold]{official_badge}",
             border_style="magenta",
         )
     )
