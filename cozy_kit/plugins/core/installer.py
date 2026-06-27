@@ -533,6 +533,9 @@ def autoload_plugins() -> Dict[str, Optional[Exception]]:
     entry that is not already enabled. Failures are caught and logged rather than
     raised, so a single broken plugin does not prevent the others from loading.
     """
+    from cozy_kit.plugins.core._builtins import ensure_builtins_installed
+    ensure_builtins_installed(silent=True)
+
     registry = get_registry()
     results: Dict[str, Optional[Exception]] = {}
 

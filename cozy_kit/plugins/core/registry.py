@@ -171,6 +171,7 @@ def register_plugin(manifest: PluginManifest, engine_src: str):
             "conflict_with": manifest.conflict_with,
             "clis": clis_stored,
             "official": manifest.official,
+            "builtin": manifest.builtin,
             "installed_at": existing_installed_at or now,
             "updated_at": now,
         }
@@ -184,6 +185,9 @@ def register_plugin(manifest: PluginManifest, engine_src: str):
             "path": str(plugin_dir),
             "target": manifest.target,
             "tags": manifest.tags,
+            "official": manifest.official,
+            "builtin": manifest.builtin,
+            "clis": list((manifest.clis or {}).keys()),
         }
         _save_registry(registry)
 

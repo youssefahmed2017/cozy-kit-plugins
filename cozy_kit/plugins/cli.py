@@ -63,12 +63,14 @@ def _cmd_list(args) -> int:
         target = info.get("target") or "(standalone)"
         tag_str = ", ".join(info.get("tags", []))
         marker = "[green]yes[/green]" if name in autoload else ""
-        cli_names = ", ".join(sorted((info.get("clis") or {}).keys()))
-        name_cell = (
-            f"[gold1]★[/gold1] [cyan bold]{name}[/cyan bold]"
-            if info.get("official")
-            else f"[cyan bold]{name}[/cyan bold]"
-        )
+        raw_clis = info.get("clis") or []
+        cli_names = ", ".join(sorted(raw_clis if isinstance(raw_clis, list) else raw_clis.keys()))
+        badges = ""
+        if info.get("official"):
+            badges += "[gold1]★[/gold1] "
+        if info.get("builtin"):
+            badges += "[bright_blue]⬡[/bright_blue] "
+        name_cell = f"{badges}[cyan bold]{name}[/cyan bold]"
         table.add_row(name_cell, info.get("version", ""), target, tag_str, marker, cli_names)
 
     console.print(table)
@@ -87,11 +89,15 @@ def _cmd_info(args) -> int:
         console.print(f"[red bold]Error:[/red bold] {exc}", file=sys.stderr)
         return 1
 
-    official_badge = " [gold1]★ OFFICIAL[/gold1]" if data.get("official") else ""
+    badges = ""
+    if data.get("official"):
+        badges += " [gold1]★ OFFICIAL[/gold1]"
+    if data.get("builtin"):
+        badges += " [bright_blue]⬡ BUILT-IN[/bright_blue]"
     console.print(
         Panel(
             JSON(json.dumps(data, indent=2)),
-            title=f"[cyan bold]{args.name}[/cyan bold]{official_badge}",
+            title=f"[cyan bold]{args.name}[/cyan bold]{badges}",
             border_style="magenta",
         )
     )
@@ -804,6 +810,9 @@ def main(argv=None) -> int:
             "Install them with:  [cyan]pip install \"cozy-kit\\[plugins]\"[/cyan]"
         )
         return 1
+
+    from cozy_kit.plugins.core._builtins import ensure_builtins_installed
+    ensure_builtins_installed(silent=True)
 
     parser = build_parser()
     args = parser.parse_args(argv)

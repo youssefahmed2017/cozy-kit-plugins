@@ -70,6 +70,19 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
     raw_author = meta_data.get("author", "")
     display_author, is_trusted = resolve_author(raw_author)
     official = bool(meta_data.get("official", False)) and is_trusted
+    builtin = bool(meta_data.get("built-in", False)) and is_trusted
+
+    if builtin:
+        _registry = get_registry()
+        builtin_count = sum(
+            1 for pname in _registry
+            if fetch_plugin(pname).get("builtin", False)
+        )
+        if builtin_count >= 10:
+            raise InvalidMetadataError(
+                "The built-in plugin limit (10) has been reached. "
+                "Cannot register another built-in plugin."
+            )
 
     deps = meta_data.get("dependencies", [])
     if not isinstance(deps, list):
@@ -181,6 +194,7 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
         conflict_with=conflict_with,
         clis=resolved_clis,
         official=official,
+        builtin=builtin,
     )
 
     register_plugin(manifest, str(engine_path))

@@ -205,6 +205,7 @@ def _fetch_from_registry() -> List[Dict]:
                 "target": p.get("target", ""),
                 "tags": p.get("tags", []),
                 "verified": bool(p.get("verified", False)),
+                "builtin": bool(p.get("builtin", False)),
             }
         )
     return entries

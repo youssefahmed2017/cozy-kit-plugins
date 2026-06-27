@@ -50,6 +50,7 @@ from cozy_kit.plugins.core.marketplace import (
     upgrade_from_marketplace,
     get_index_entry,
 )
+from cozy_kit.plugins.core._builtins import ensure_builtins_installed
 from cozy_kit._internal.errors.plugin_errors import (
     InvalidMetadataError,
     PluginNotFoundError,
@@ -89,6 +90,7 @@ __all__ = [
     "install_from_marketplace",
     "upgrade_from_marketplace",
     "get_index_entry",
+    "ensure_builtins_installed",
     "CozyKitPluginSystemError",
     "InvalidMetadataError",
     "PluginNotFoundError",

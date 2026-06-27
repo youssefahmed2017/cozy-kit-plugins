@@ -162,6 +162,30 @@ def validate_plugin(metadata: str, engine: str) -> ValidationResult:
                     "this field will be ignored at registration time."
                 )
 
+    if meta_data.get("built-in") is not None:
+        if not isinstance(meta_data["built-in"], bool):
+            errors.append("'built-in' must be a boolean.")
+        elif meta_data["built-in"]:
+            from cozy_kit._internal._trusted import resolve_author
+            _, is_trusted = resolve_author(meta_data.get("author", ""))
+            if not is_trusted:
+                warnings.append(
+                    "'built-in: true' is set but the author is not a trusted maintainer — "
+                    "this field will be ignored at registration time."
+                )
+            else:
+                from cozy_kit.plugins.core.registry import get_registry, fetch_plugin as _fetch
+                _registry = get_registry()
+                builtin_count = sum(
+                    1 for pname in _registry
+                    if _fetch(pname).get("builtin", False)
+                )
+                if builtin_count >= 10:
+                    errors.append(
+                        "The built-in plugin limit (10) has been reached. "
+                        "This plugin cannot be registered as built-in."
+                    )
+
     if "license" not in meta_data:
         warnings.append(
             "No 'license' field. Consider adding one (e.g. 'MIT', 'Apache-2.0')."
