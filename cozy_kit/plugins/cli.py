@@ -64,14 +64,18 @@ def _cmd_list(args) -> int:
         tag_str = ", ".join(info.get("tags", []))
         marker = "[green]yes[/green]" if name in autoload else ""
         raw_clis = info.get("clis") or []
-        cli_names = ", ".join(sorted(raw_clis if isinstance(raw_clis, list) else raw_clis.keys()))
+        cli_names = ", ".join(
+            sorted(raw_clis if isinstance(raw_clis, list) else raw_clis.keys())
+        )
         badges = ""
         if info.get("official"):
             badges += "[gold1]★[/gold1] "
         if info.get("builtin"):
             badges += "[bright_blue]⬡[/bright_blue] "
         name_cell = f"{badges}[cyan bold]{name}[/cyan bold]"
-        table.add_row(name_cell, info.get("version", ""), target, tag_str, marker, cli_names)
+        table.add_row(
+            name_cell, info.get("version", ""), target, tag_str, marker, cli_names
+        )
 
     console.print(table)
     return 0
@@ -807,11 +811,12 @@ def main(argv=None) -> int:
     except ImportError:
         console.print(
             "[red bold]Error:[/red bold] cozy-kit's plugin system requires optional dependencies.\n"
-            "Install them with:  [cyan]pip install \"cozy-kit\\[plugins]\"[/cyan]"
+            'Install them with:  [cyan]pip install "cozy-kit\\[plugins]"[/cyan]'
         )
         return 1
 
     from cozy_kit.plugins.core._builtins import ensure_builtins_installed
+
     ensure_builtins_installed(silent=True)
 
     parser = build_parser()

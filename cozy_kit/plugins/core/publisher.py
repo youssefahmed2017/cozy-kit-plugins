@@ -75,8 +75,7 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
     if builtin:
         _registry = get_registry()
         builtin_count = sum(
-            1 for pname in _registry
-            if fetch_plugin(pname).get("builtin", False)
+            1 for pname in _registry if fetch_plugin(pname).get("builtin", False)
         )
         if builtin_count >= 10:
             raise InvalidMetadataError(
@@ -138,10 +137,14 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
 
     clis_raw = meta_data.get("CLIs", {})
     if not isinstance(clis_raw, dict):
-        raise InvalidMetadataError("'CLIs' must be a dict mapping command names to 'file.py:func' strings.")
+        raise InvalidMetadataError(
+            "'CLIs' must be a dict mapping command names to 'file.py:func' strings."
+        )
     for cli_name, spec in clis_raw.items():
         if not isinstance(cli_name, str) or not cli_name.strip():
-            raise InvalidMetadataError(f"CLI command name must be a non-empty string, got: {cli_name!r}")
+            raise InvalidMetadataError(
+                f"CLI command name must be a non-empty string, got: {cli_name!r}"
+            )
         if not isinstance(spec, str) or ":" not in spec:
             raise InvalidMetadataError(
                 f"CLI spec for '{cli_name}' must be 'file.py:function', got: {spec!r}"

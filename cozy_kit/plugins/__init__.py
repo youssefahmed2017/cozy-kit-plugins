@@ -3,7 +3,7 @@ try:
 except ImportError:
     raise ImportError(
         "cozy-kit's plugin system requires optional dependencies.\n"
-        "Install them with:  pip install \"cozy-kit[plugins]\""
+        'Install them with:  pip install "cozy-kit[plugins]"'
     ) from None
 
 """

@@ -370,7 +370,11 @@ def add_plugin(name: str) -> None:
 
             for cli_name, spec in plugin_data.get("clis", {}).items():
                 abs_file, func = spec.rsplit(":", 1)
-                _cli_registry[cli_name] = {"file": abs_file, "func": func, "plugin": plugin_name}
+                _cli_registry[cli_name] = {
+                    "file": abs_file,
+                    "func": func,
+                    "plugin": plugin_name,
+                }
                 _write_cli_script(cli_name, abs_file, func)
                 _log.debug("Registered CLI '%s' ← plugin '%s'.", cli_name, plugin_name)
 
@@ -534,6 +538,7 @@ def autoload_plugins() -> Dict[str, Optional[Exception]]:
     raised, so a single broken plugin does not prevent the others from loading.
     """
     from cozy_kit.plugins.core._builtins import ensure_builtins_installed
+
     ensure_builtins_installed(silent=True)
 
     registry = get_registry()

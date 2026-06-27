@@ -137,24 +137,33 @@ def validate_plugin(metadata: str, engine: str) -> ValidationResult:
 
     clis = meta_data.get("CLIs", {})
     if not isinstance(clis, dict):
-        errors.append("'CLIs' must be a dict mapping command names to 'file.py:func' strings.")
+        errors.append(
+            "'CLIs' must be a dict mapping command names to 'file.py:func' strings."
+        )
     else:
         for cli_name, spec in clis.items():
             if not isinstance(cli_name, str) or not cli_name.strip():
-                errors.append(f"CLI command name must be a non-empty string, got: {cli_name!r}")
+                errors.append(
+                    f"CLI command name must be a non-empty string, got: {cli_name!r}"
+                )
                 continue
             if not isinstance(spec, str) or ":" not in spec:
-                errors.append(f"CLI spec for '{cli_name}' must be 'file.py:function', got: {spec!r}")
+                errors.append(
+                    f"CLI spec for '{cli_name}' must be 'file.py:function', got: {spec!r}"
+                )
                 continue
             file_part, _, func_part = spec.partition(":")
             if not func_part.strip():
-                errors.append(f"CLI spec for '{cli_name}' is missing a function name: {spec!r}")
+                errors.append(
+                    f"CLI spec for '{cli_name}' is missing a function name: {spec!r}"
+                )
 
     if meta_data.get("official") is not None:
         if not isinstance(meta_data["official"], bool):
             errors.append("'official' must be a boolean.")
         elif meta_data["official"]:
             from cozy_kit._internal._trusted import resolve_author
+
             _, is_trusted = resolve_author(meta_data.get("author", ""))
             if not is_trusted:
                 warnings.append(
@@ -167,6 +176,7 @@ def validate_plugin(metadata: str, engine: str) -> ValidationResult:
             errors.append("'built-in' must be a boolean.")
         elif meta_data["built-in"]:
             from cozy_kit._internal._trusted import resolve_author
+
             _, is_trusted = resolve_author(meta_data.get("author", ""))
             if not is_trusted:
                 warnings.append(
@@ -174,11 +184,14 @@ def validate_plugin(metadata: str, engine: str) -> ValidationResult:
                     "this field will be ignored at registration time."
                 )
             else:
-                from cozy_kit.plugins.core.registry import get_registry, fetch_plugin as _fetch
+                from cozy_kit.plugins.core.registry import (
+                    get_registry,
+                    fetch_plugin as _fetch,
+                )
+
                 _registry = get_registry()
                 builtin_count = sum(
-                    1 for pname in _registry
-                    if _fetch(pname).get("builtin", False)
+                    1 for pname in _registry if _fetch(pname).get("builtin", False)
                 )
                 if builtin_count >= 10:
                     errors.append(

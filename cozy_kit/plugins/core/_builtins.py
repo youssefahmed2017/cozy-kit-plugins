@@ -11,6 +11,7 @@ _FLAG_FILE_NAME = ".builtins_installed"
 
 def _flag_path() -> Path:
     import os
+
     base = os.environ.get("COZY_KIT_PLUGINS_DIR")
     root = Path(base) if base else Path.home() / ".cozy_kit"
     return root / _FLAG_FILE_NAME
