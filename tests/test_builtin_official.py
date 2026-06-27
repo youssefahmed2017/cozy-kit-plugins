@@ -19,8 +19,18 @@ import pytest
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-from cozy_kit._internal._trusted import _AUTHOR_TOKEN as TRUSTED_TOKEN
+import os
+
 from cozy_kit._internal._trusted import _AUTHOR_DISPLAY as DISPLAY_NAME
+
+# Raw token is never stored in source — set COZY_KIT_AUTHOR_TOKEN in the
+# environment (or a local .env) before running these tests.
+TRUSTED_TOKEN = os.environ.get("COZY_KIT_AUTHOR_TOKEN", "")
+
+needs_token = pytest.mark.skipif(
+    not TRUSTED_TOKEN,
+    reason="COZY_KIT_AUTHOR_TOKEN env var not set",
+)
 
 PLUGIN_ROOT = Path(__file__).parent.parent
 
@@ -49,6 +59,7 @@ def _make_engine(tmp: Path, extra: str = "") -> Path:
 # ── 1. resolve_author ─────────────────────────────────────────────────────────
 
 
+@needs_token
 def test_trusted_token_resolves():
     from cozy_kit._internal._trusted import resolve_author
 
@@ -92,6 +103,7 @@ def test_untrusted_official_forced_false(tmp_path):
     assert result.stdout.strip() == "False False"
 
 
+@needs_token
 def test_trusted_author_official_and_builtin(tmp_path):
     meta = _make_metadata(
         tmp_path, {"official": True, "built-in": True, "author": TRUSTED_TOKEN}
@@ -123,6 +135,7 @@ def test_trusted_author_official_and_builtin(tmp_path):
 # ── 3. stored metadata never contains the raw token ──────────────────────────
 
 
+@needs_token
 def test_token_not_stored(tmp_path):
     meta = _make_metadata(
         tmp_path, {"official": True, "built-in": True, "author": TRUSTED_TOKEN}
@@ -179,6 +192,7 @@ def test_validator_warns_untrusted_builtin(tmp_path):
     assert any("built-in" in w and "trusted" in w for w in result.warnings)
 
 
+@needs_token
 def test_validator_no_warning_for_trusted(tmp_path):
     from cozy_kit.plugins.core.validator import validate_plugin
 
@@ -195,6 +209,7 @@ def test_validator_no_warning_for_trusted(tmp_path):
 # ── 5. validator: errors when built-in limit is reached ──────────────────────
 
 
+@needs_token
 def test_validator_builtin_limit(tmp_path, monkeypatch):
     """Validator should error when 10 built-in plugins are already registered."""
     # The validator imports get_registry/fetch_plugin lazily from registry,
@@ -218,6 +233,7 @@ def test_validator_builtin_limit(tmp_path, monkeypatch):
 # ── 6. publisher: errors when built-in limit is reached ──────────────────────
 
 
+@needs_token
 def test_publisher_builtin_limit(tmp_path, monkeypatch):
     """Publisher should raise InvalidMetadataError when 10 builtins exist."""
     fake_registry = {f"plugin_{i}": {} for i in range(10)}

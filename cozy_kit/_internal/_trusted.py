@@ -1,13 +1,17 @@
-_AUTHOR_TOKEN = "yOdEV198.author(owner)363"
+import hashlib
+
+# SHA-256 of the trusted author token — raw token is never stored in source.
+_AUTHOR_TOKEN_HASH = "7ec88a2729867c6dc9af6d776565629c2fc55f671d9b216f7899b3382636ca24"
 _AUTHOR_DISPLAY = "Youssef Ahmed (owner/author)"
 
 
 def resolve_author(raw: str) -> tuple[str, bool]:
     """
     Return (display_author, is_trusted).
-    If raw matches the trusted token, returns the public display name and True.
-    Otherwise returns raw unchanged and False.
+    Hashes the input and compares to the stored hash — the raw token never
+    appears in this file.
     """
-    if raw == _AUTHOR_TOKEN:
+    h = hashlib.sha256(raw.encode()).hexdigest()
+    if h == _AUTHOR_TOKEN_HASH:
         return _AUTHOR_DISPLAY, True
     return raw, False
