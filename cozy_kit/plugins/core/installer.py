@@ -55,8 +55,7 @@ _cli_registry: Dict[str, Dict[str, str]] = {}  # {cli_name: {file, func, plugin}
 
 def _scripts_dir() -> Path:
     """Return the Python env's Scripts/bin directory (same place cozy-plugins lives)."""
-    import sysconfig
-    return Path(sysconfig.get_path("scripts"))
+    return Path(_sys.executable).parent
 
 
 def _write_cli_script(cli_name: str, cli_file: str, func: str) -> None:
