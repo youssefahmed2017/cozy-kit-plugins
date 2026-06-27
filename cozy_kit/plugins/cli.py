@@ -151,6 +151,7 @@ def _cmd_remove(args) -> int:
         CozyKitPluginSystemError as PluginSystemError,
     )
 
+    args.name = args.name.replace("-", "_")
     try:
         remove_plugin(args.name)  # fires on_disable → on_uninstall, removes CLI scripts
     except PluginNotFoundError as exc:
@@ -173,6 +174,7 @@ def _cmd_enable(args) -> int:
         CozyKitPluginSystemError as PluginSystemError,
     )
 
+    args.name = args.name.replace("-", "_")
     if args.name not in get_registry():
         console.print(
             f"[red bold]Error:[/red bold] Plugin [cyan bold]{args.name}[/cyan bold] is not registered."
@@ -198,6 +200,7 @@ def _cmd_disable(args) -> int:
         CozyKitPluginSystemError as PluginSystemError,
     )
 
+    args.name = args.name.replace("-", "_")
     if args.name not in get_registry():
         console.print(
             f"[red bold]Error:[/red bold] Plugin [cyan bold]{args.name}[/cyan bold] is not registered."
