@@ -301,14 +301,22 @@ def fetch_index(force_refresh: bool = False) -> List[Dict]:
     plugins: List[Dict] = []
     seen: set = set()
 
-    # Curated entries: registry metadata + version from PyPI
+    # Curated entries: registry metadata + version from PyPI search.
+    # Fall back to the JSON API for any entry the search didn't return yet
+    # (newly published packages can take hours to appear in search results).
     for pkg, entry in registry_by_pkg.items():
         seen.add(pkg)
         pypi = pypi_by_pkg.get(pkg, {})
+        version = pypi.get("version", "")
+        if not version:
+            try:
+                version = _pypi_json_info(pkg).get("version", "")
+            except MarketplaceError:
+                pass
         plugins.append(
             {
                 **entry,
-                "version": pypi.get("version", ""),
+                "version": version,
                 "description": entry["description"]
                 or pypi.get("description", "").strip(),
             }
