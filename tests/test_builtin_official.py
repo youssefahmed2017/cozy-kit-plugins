@@ -19,8 +19,8 @@ import pytest
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-TRUSTED_TOKEN = "yOdEV198.author(owner)363"
-DISPLAY_NAME = "Youssef Ahmed (owner/author)"
+from cozy_kit._internal._trusted import _AUTHOR_TOKEN as TRUSTED_TOKEN
+from cozy_kit._internal._trusted import _AUTHOR_DISPLAY as DISPLAY_NAME
 
 PLUGIN_ROOT = Path(__file__).parent.parent
 
