@@ -57,12 +57,14 @@ def _cmd_list(args) -> int:
     table.add_column("Target", style="bright_white")
     table.add_column("Tags", style="dim")
     table.add_column("Autoload", style="green")
+    table.add_column("CLIs", style="dim")
 
     for name, info in sorted(registry.items()):
         target = info.get("target") or "(standalone)"
         tag_str = ", ".join(info.get("tags", []))
         marker = "[green]yes[/green]" if name in autoload else ""
-        table.add_row(name, info.get("version", ""), target, tag_str, marker)
+        cli_names = ", ".join(sorted((info.get("clis") or {}).keys()))
+        table.add_row(name, info.get("version", ""), target, tag_str, marker, cli_names)
 
     console.print(table)
     return 0
@@ -619,6 +621,40 @@ def _cmd_marketplace_install(args) -> int:
     return 0
 
 
+def _cmd_run(args) -> int:
+    from cozy_kit.plugins.core.installer import get_cli_entry
+    from cozy_kit._internal.helpers.import_helpers import load_module_from_path
+    from cozy_kit._internal.errors.plugin_errors import PluginCLIError
+
+    try:
+        entry = get_cli_entry(args.cli_name)
+    except PluginCLIError as exc:
+        console.print(f"[red bold]Error:[/red bold] {exc}")
+        return 1
+
+    old_argv = sys.argv[:]
+    sys.argv = [args.cli_name] + (args.cli_args or [])
+    try:
+        mod = load_module_from_path(entry["file"], f"_cozy_cli_{args.cli_name}")
+        fn = getattr(mod, entry["func"], None)
+        if fn is None:
+            console.print(
+                f"[red bold]Error:[/red bold] "
+                f"'{entry['func']}' not found in {entry['file']}"
+            )
+            return 1
+        fn()
+    except SystemExit as exc:
+        return int(exc.code) if exc.code is not None else 0
+    except Exception as exc:
+        console.print(f"[red bold]Error:[/red bold] {exc}")
+        return 1
+    finally:
+        sys.argv = old_argv
+
+    return 0
+
+
 def _cmd_stubs(args) -> int:
     from cozy_kit.plugins.core.stubgen import generate_stubs
     from cozy_kit._internal.errors.inheritance_errors import (
@@ -700,6 +736,15 @@ def build_parser(prog: str = "cozy-plugins") -> argparse.ArgumentParser:
         "names", nargs="*", metavar="name", help="Plugin name(s). All if omitted."
     )
     p.set_defaults(func=_cmd_stubs)
+
+    p = sub.add_parser("run", help="Invoke a CLI registered by an enabled plugin.")
+    p.add_argument("cli_name", help="CLI command name as declared in the plugin's 'CLIs' field.")
+    p.add_argument(
+        "cli_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments forwarded to the CLI function via sys.argv.",
+    )
+    p.set_defaults(func=_cmd_run)
 
     p = sub.add_parser("discover", help="Search PyPI for published cozy-kit plugins.")
     p.add_argument(

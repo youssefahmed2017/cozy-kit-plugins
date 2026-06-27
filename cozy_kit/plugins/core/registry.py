@@ -147,6 +147,13 @@ def register_plugin(manifest: PluginManifest, engine_src: str):
         checksum = sha256_file(engine_dest)
         now = datetime.now(timezone.utc).isoformat()
 
+        clis_stored: dict = {}
+        for cli_name, spec in (manifest.clis or {}).items():
+            abs_file, func = spec.rsplit(":", 1)
+            cli_dest = plugin_dir / f"cli_{cli_name}.py"
+            cli_dest.write_bytes(Path(abs_file).read_bytes())
+            clis_stored[cli_name] = f"{cli_dest}:{func}"
+
         meta_payload = {
             "name": manifest.name,
             "version": manifest.version,
@@ -162,6 +169,7 @@ def register_plugin(manifest: PluginManifest, engine_src: str):
             "python_requires": manifest.python_requires,
             "tags": manifest.tags,
             "conflict_with": manifest.conflict_with,
+            "clis": clis_stored,
             "installed_at": existing_installed_at or now,
             "updated_at": now,
         }

@@ -21,6 +21,7 @@ from cozy_kit._internal.errors.plugin_errors import (
     InvalidMetadataError,
     MethodCollisionError,
     MissingDependencyError,
+    PluginCLIError,
     PluginCompatibilityError,
     PluginConflictError,
     PluginIntegrityError,
@@ -47,6 +48,7 @@ _custom_targets: Dict[str, type] = {}
 _standalone_plugins: Dict[str, Dict[str, Callable]] = {}
 _enabled_plugins: Set[str] = set()
 _method_ownership: Dict[str, Dict[str, str]] = {}
+_cli_registry: Dict[str, Dict[str, str]] = {}  # {cli_name: {file, func, plugin}}
 
 
 def register_target(name: str, cls: type) -> None:
@@ -185,6 +187,8 @@ def _rollback_plugin(plugin_name: str) -> None:
                     delattr(target_cls, method_name)
                 ownership.pop(method_name, None)
     _standalone_plugins.pop(plugin_name, None)
+    for cli_name in [k for k, v in _cli_registry.items() if v["plugin"] == plugin_name]:
+        del _cli_registry[cli_name]
     _enabled_plugins.discard(plugin_name)
 
 
@@ -318,6 +322,11 @@ def add_plugin(name: str) -> None:
 
             patched_this_call.append(plugin_name)
 
+            for cli_name, spec in plugin_data.get("clis", {}).items():
+                abs_file, func = spec.rsplit(":", 1)
+                _cli_registry[cli_name] = {"file": abs_file, "func": func, "plugin": plugin_name}
+                _log.debug("Registered CLI '%s' ← plugin '%s'.", cli_name, plugin_name)
+
             call_hook(module, "on_enable", ctx, plugin_name)
             _enabled_plugins.add(plugin_name)
             _log.info("Enabled plugin '%s'.", plugin_name)
@@ -359,6 +368,8 @@ def disable_plugin(name: str) -> None:
                 ownership.pop(method_name, None)
 
     _standalone_plugins.pop(name, None)
+    for cli_name in [k for k, v in _cli_registry.items() if v["plugin"] == name]:
+        del _cli_registry[cli_name]
     _enabled_plugins.discard(name)
     set_autoload(name, False)
     _log.info("Disabled plugin '%s'.", name)
@@ -378,6 +389,22 @@ def remove_plugin(name: str) -> None:
     call_hook(module, "on_uninstall", ctx, name)
     unregister_plugin(name)
     _log.info("Removed plugin '%s'.", name)
+
+
+def get_cli_entry(cli_name: str) -> Dict[str, str]:
+    """Return the registered CLI entry for *cli_name* or raise PluginCLIError."""
+    if cli_name not in _cli_registry:
+        available = sorted(_cli_registry)
+        raise PluginCLIError(
+            f"No CLI named '{cli_name}' is currently registered."
+            + (f" Available: {available}" if available else "")
+        )
+    return _cli_registry[cli_name]
+
+
+def list_clis() -> Dict[str, Dict[str, str]]:
+    """Return a snapshot of all currently registered CLIs."""
+    return dict(_cli_registry)
 
 
 def get_plugin_functions(name: str) -> Dict[str, Callable]:

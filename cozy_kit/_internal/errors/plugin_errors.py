@@ -55,3 +55,7 @@ class PluginConflictError(CozyKitPluginSystemError):
 
 class MarketplaceError(CozyKitPluginSystemError):
     """Raised when a marketplace operation fails (network, pip, or naming-convention errors)."""
+
+
+class PluginCLIError(CozyKitPluginSystemError):
+    """Raised when a plugin CLI entry is missing, malformed, or cannot be invoked."""

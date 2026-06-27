@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -17,3 +17,4 @@ class PluginManifest:
     python_requires: Optional[str] = None
     tags: List[str] = field(default_factory=list)
     conflict_with: List[str] = field(default_factory=list)
+    clis: Dict[str, str] = field(default_factory=dict)

@@ -28,6 +28,8 @@ from cozy_kit.plugins.core.installer import (
     remove_plugin,
     upgrade_plugin,
     get_plugin_functions,
+    get_cli_entry,
+    list_clis,
     register_target,
     status,
     autoload_plugins,
@@ -55,6 +57,7 @@ from cozy_kit._internal.errors.plugin_errors import (
     PluginCompatibilityError,
     PluginConflictError,
     MarketplaceError,
+    PluginCLIError,
 )
 
 from cozy_kit._internal.errors.inheritance_errors import CozyKitPluginSystemError
@@ -65,6 +68,8 @@ __all__ = [
     "disable_plugin",
     "remove_plugin",
     "get_plugin_functions",
+    "get_cli_entry",
+    "list_clis",
     "register_target",
     "list_plugins",
     "unregister_plugin",
@@ -91,4 +96,5 @@ __all__ = [
     "PluginCompatibilityError",
     "PluginConflictError",
     "MarketplaceError",
+    "PluginCLIError",
 ]

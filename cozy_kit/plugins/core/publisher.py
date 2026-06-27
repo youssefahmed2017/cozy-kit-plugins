@@ -118,11 +118,37 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
                 f"'min_cozy_kit_version' {min_ck!r} is not a valid version string: {exc}"
             ) from exc
 
+    clis_raw = meta_data.get("CLIs", {})
+    if not isinstance(clis_raw, dict):
+        raise InvalidMetadataError("'CLIs' must be a dict mapping command names to 'file.py:func' strings.")
+    for cli_name, spec in clis_raw.items():
+        if not isinstance(cli_name, str) or not cli_name.strip():
+            raise InvalidMetadataError(f"CLI command name must be a non-empty string, got: {cli_name!r}")
+        if not isinstance(spec, str) or ":" not in spec:
+            raise InvalidMetadataError(
+                f"CLI spec for '{cli_name}' must be 'file.py:function', got: {spec!r}"
+            )
+
     engine_path = Path(engine)
     if not engine_path.suffix:
         engine_path = engine_path.with_suffix(".py")
     if not engine_path.exists():
         raise EngineNotFoundError(f"Engine file not found: {engine_path}")
+
+    engine_dir = engine_path.parent
+    resolved_clis: dict = {}
+    for cli_name, spec in clis_raw.items():
+        file_part, _, func_part = spec.partition(":")
+        if not func_part.strip():
+            raise InvalidMetadataError(
+                f"CLI spec for '{cli_name}' is missing a function name: {spec!r}"
+            )
+        cli_file = engine_dir / file_part
+        if not cli_file.exists():
+            raise InvalidMetadataError(
+                f"CLI file for '{cli_name}' not found: {cli_file}"
+            )
+        resolved_clis[cli_name] = f"{cli_file}:{func_part.strip()}"
 
     name = meta_data["name"].strip()
     registry = get_registry()
@@ -148,6 +174,7 @@ def plugin(metadata: str, engine: str, overwrite: bool = False) -> PluginManifes
         python_requires=meta_data.get("python_requires"),
         tags=tags,
         conflict_with=conflict_with,
+        clis=resolved_clis,
     )
 
     register_plugin(manifest, str(engine_path))

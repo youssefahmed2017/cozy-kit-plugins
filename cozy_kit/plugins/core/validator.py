@@ -135,6 +135,21 @@ def validate_plugin(metadata: str, engine: str) -> ValidationResult:
     elif any(not isinstance(c, str) or not c.strip() for c in conflicts):
         errors.append("Each entry in 'conflict_with' must be a non-empty string.")
 
+    clis = meta_data.get("CLIs", {})
+    if not isinstance(clis, dict):
+        errors.append("'CLIs' must be a dict mapping command names to 'file.py:func' strings.")
+    else:
+        for cli_name, spec in clis.items():
+            if not isinstance(cli_name, str) or not cli_name.strip():
+                errors.append(f"CLI command name must be a non-empty string, got: {cli_name!r}")
+                continue
+            if not isinstance(spec, str) or ":" not in spec:
+                errors.append(f"CLI spec for '{cli_name}' must be 'file.py:function', got: {spec!r}")
+                continue
+            file_part, _, func_part = spec.partition(":")
+            if not func_part.strip():
+                errors.append(f"CLI spec for '{cli_name}' is missing a function name: {spec!r}")
+
     if "license" not in meta_data:
         warnings.append(
             "No 'license' field. Consider adding one (e.g. 'MIT', 'Apache-2.0')."
