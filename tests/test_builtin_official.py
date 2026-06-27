@@ -19,8 +19,6 @@ import pytest
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-import os
-
 from cozy_kit._internal._trusted import _AUTHOR_DISPLAY as DISPLAY_NAME
 
 # Raw token is never stored in source — set COZY_KIT_AUTHOR_TOKEN in the
