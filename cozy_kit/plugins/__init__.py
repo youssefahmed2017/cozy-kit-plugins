@@ -1,3 +1,11 @@
+try:
+    import packaging  # noqa: F401
+except ImportError:
+    raise ImportError(
+        "cozy-kit's plugin system requires optional dependencies.\n"
+        "Install them with:  pip install \"cozy-kit[plugins]\""
+    ) from None
+
 """
 cozy_kit.plugins — Plugin system for cozy-kit.
 

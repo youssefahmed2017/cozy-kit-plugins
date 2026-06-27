@@ -796,6 +796,15 @@ def build_parser(prog: str = "cozy-plugins") -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
+    try:
+        import packaging  # noqa: F401
+    except ImportError:
+        console.print(
+            "[red bold]Error:[/red bold] cozy-kit's plugin system requires optional dependencies.\n"
+            "Install them with:  [cyan]pip install \"cozy-kit\\[plugins]\"[/cyan]"
+        )
+        return 1
+
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)

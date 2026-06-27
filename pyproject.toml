@@ -30,7 +30,11 @@ classifiers = [
 dependencies = [
     "plyer",
     "rich",
-    "packaging>=24"
+]
+
+[project.optional-dependencies]
+plugins = [
+    "packaging>=24",
 ]
 
 keywords = [
